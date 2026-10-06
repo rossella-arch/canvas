@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Il Detective della Grammatica 🕵️‍♂️ - Analisi Logica Avanzata</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti for winning celebrations -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Fredoka & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Fredoka', 'Inter', sans-serif;
+            background: linear-gradient(135deg, #e0f2fe 0%, #f3e8ff 50%, #fce7f3 100%);
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        .bounce-light {
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+
+        .pop-in {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .drop-zone {
+            transition: all 0.2s ease;
+        }
+
+        .drop-zone.drag-over {
+            transform: scale(1.03);
+            filter: brightness(1.05);
+        }
+
+        .chip-selected {
+            outline: 4px solid #f59e0b;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body class="p-3 md:p-6 text-slate-800 flex flex-col items-center justify-between min-h-screen">
+
+    <!-- MAIN CONTAINER -->
+    <div class="w-full max-w-5xl mx-auto flex flex-col flex-grow">
+        
+        <header class="bg-white/90 backdrop-blur-md rounded-3xl p-4 shadow-lg border-2 border-indigo-100 mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 text-white p-3 rounded-2xl shadow-md text-2xl flex items-center justify-center w-12 h-12">
+                    🕵️‍♂️
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold text-indigo-900 leading-tight">Detective della Grammatica</h1>
+                    <p class="text-xs md:text-sm font-semibold text-indigo-600">Soggetto • Predicato • C. Oggetto • C. Specificazione</p>
+                </div>
+            </div>
+
+            <!-- SCORE & PROGRESS -->
+            <div class="flex items-center gap-4 bg-indigo-50/80 px-4 py-2 rounded-2xl border border-indigo-100">
+                <div class="flex items-center gap-1.5 text-amber-500 font-bold text-lg">
+                    <i class="fa-solid fa-star text-amber-400"></i>
+                    <span id="score-display">0</span>
+                </div>
+                <div class="h-6 w-px bg-indigo-200"></div>
+                <div class="text-sm font-bold text-indigo-700">
+                    Livello <span id="current-level-text">1</span>/<span id="total-levels-text">10</span>
+                </div>
+                <button id="sound-btn" onclick="toggleSound()" class="ml-2 text-indigo-600 hover:text-indigo-800 text-xl focus:outline-none" title="Attiva/Disattiva Suono">
+                    <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- PROGRESS BAR -->
+        <div class="w-full bg-indigo-100 rounded-full h-3 mb-5 overflow-hidden shadow-inner">
+            <div id="progress-bar" class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 h-3 rounded-full transition-all duration-500" style="width: 10%;"></div>
+        </div>
+
+        <main class="bg-white/90 backdrop-blur-md rounded-3xl p-4 md:p-7 shadow-xl border-2 border-purple-100 flex-grow flex flex-col justify-between relative overflow-hidden">
+            
+            <!-- TOP CARD HEADER: INSTRUCTIONS & HINT BUTTON -->
+            <div class="flex items-center justify-between gap-2 mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="bg-purple-100 text-purple-700 font-bold text-xs md:text-sm px-3 py-1 rounded-full uppercase tracking-wider">Istruzioni</span>
+                    <span class="text-xs md:text-sm text-slate-600 font-medium hidden sm:inline">Trascina o tocca i tasselli per riempire le 4 scatole dell'analisi logica!</span>
+                </div>
+                <button onclick="openRuleModal()" class="bg-amber-100 hover:bg-amber-200 text-amber-800 font-semibold px-3 py-1.5 rounded-2xl text-xs md:text-sm transition flex items-center gap-1.5 border border-amber-300">
+                    <i class="fa-solid fa-lightbulb text-amber-500"></i>
+                    <span>Guida alle 4 Regole</span>
+                </button>
+            </div>
+
+            <!-- SENTENCE CONTAINER (WORD CHIPS BANK) -->
+            <div class="mb-6">
+                <div class="text-center mb-2">
+                    <span class="text-xs uppercase tracking-widest font-bold text-slate-400">Tasselli della frase da ricomporre</span>
+                </div>
+
+                <!-- WORD BANK -->
+                <div id="word-bank" class="flex flex-wrap justify-center items-center gap-3 p-4 bg-slate-50 border-2 border-dashed border-indigo-200 rounded-2xl min-h-[90px]">
+                    <!-- Dynamic Word Chips will be injected here -->
+                </div>
+                
+                <p id="touch-instruction" class="text-center text-xs text-indigo-500 mt-2 font-medium">
+                    💡 Tocca un tassello per selezionarlo, poi tocca la scatola dove desideri posizionarlo!
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
+                
+                <!-- 1. SOGGETTO ZONE -->
+                <div id="zone-soggetto" 
+                     data-category="soggetto"
+                     onclick="handleZoneClick('soggetto')"
+                     ondragover="allowDrop(event)" 
+                     ondragleave="removeDragOver(event)" 
+                     ondrop="handleDrop(event, 'soggetto')"
+                     class="drop-zone bg-blue-50/80 hover:bg-blue-50 border-2 border-blue-300 rounded-2xl p-3.5 flex flex-col items-center min-h-[155px] cursor-pointer shadow-sm relative transition-all">
+                    
+                    <div class="flex items-center gap-1.5 mb-1">
+                        <span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span>
+                        <h3 class="font-bold text-blue-900 text-sm md:text-base">SOGGETTO</h3>
+                    </div>
+                    <span class="text-[11px] text-blue-600 font-medium mb-2.5 text-center">Chi compie l'azione?</span>
+                    
+                    <div class="slot-content w-full flex flex-col gap-2 items-center justify-center flex-grow">
+                        <!-- Placed chips go here -->
+                    </div>
+                </div>
+
+                <!-- 2. PREDICATO VERBALE ZONE -->
+                <div id="zone-predicato" 
+                     data-category="predicato"
+                     onclick="handleZoneClick('predicato')"
+                     ondragover="allowDrop(event)" 
+                     ondragleave="removeDragOver(event)" 
+                     ondrop="handleDrop(event, 'predicato')"
+                     class="drop-zone bg-rose-50/80 hover:bg-rose-50 border-2 border-rose-300 rounded-2xl p-3.5 flex flex-col items-center min-h-[155px] cursor-pointer shadow-sm relative transition-all">
+                    
+                    <div class="flex items-center gap-1.5 mb-1">
+                        <span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span>
+                        <h3 class="font-bold text-rose-900 text-sm md:text-base">PREDICATO VERBALE</h3>
+                    </div>
+                    <span class="text-[11px] text-rose-600 font-medium mb-2.5 text-center">Che azione fa? (Verbo)</span>
+                    
+                    <div class="slot-content w-full flex flex-col gap-2 items-center justify-center flex-grow">
+                        <!-- Placed chips go here -->
+                    </div>
+                </div>
+
+                <!-- 3. COMPLEMENTO OGGETTO ZONE -->
+                <div id="zone-oggetto" 
+                     data-category="oggetto"
+                     onclick="handleZoneClick('oggetto')"
+                     ondragover="allowDrop(event)" 
+                     ondragleave="removeDragOver(event)" 
+                     ondrop="handleDrop(event, 'oggetto')"
+                     class="drop-zone bg-emerald-50/80 hover:bg-emerald-50 border-2 border-emerald-300 rounded-2xl p-3.5 flex flex-col items-center min-h-[155px] cursor-pointer shadow-sm relative transition-all">
+                    
+                    <div class="flex items-center gap-1.5 mb-1">
+                        <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+                        <h3 class="font-bold text-emerald-900 text-sm md:text-base">COMPL. OGGETTO</h3>
+                    </div>
+                    <span class="text-[11px] text-emerald-600 font-medium mb-2.5 text-center">Chi? / Che cosa?</span>
+                    
+                    <div class="slot-content w-full flex flex-col gap-2 items-center justify-center flex-grow">
+                        <!-- Placed chips go here -->
+                    </div>
+                </div>
+
+                <!-- 4. COMPLEMENTO DI SPECIFICAZIONE ZONE -->
+                <div id="zone-specificazione" 
+                     data-category="specificazione"
+                     onclick="handleZoneClick('specificazione')"
+                     ondragover="allowDrop(event)" 
+                     ondragleave="removeDragOver(event)" 
+                     ondrop="handleDrop(event, 'specificazione')"
+                     class="drop-zone bg-amber-50/80 hover:bg-amber-50 border-2 border-amber-300 rounded-2xl p-3.5 flex flex-col items-center min-h-[155px] cursor-pointer shadow-sm relative transition-all">
+                    
+                    <div class="flex items-center gap-1.5 mb-1">
+                        <span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
+                        <h3 class="font-bold text-amber-900 text-sm md:text-base">COMPL. SPECIFICAZIONE</h3>
+                    </div>
+                    <span class="text-[11px] text-amber-700 font-medium mb-2.5 text-center">Di chi? / Di che cosa?</span>
+                    
+                    <div class="slot-content w-full flex flex-col gap-2 items-center justify-center flex-grow">
+                        <!-- Placed chips go here -->
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="flex items-center justify-between gap-4 pt-2">
+                <button onclick="resetCurrentSentence()" class="px-4 py-2.5 rounded-2xl text-slate-600 bg-slate-100 hover:bg-slate-200 font-semibold text-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <span>Ricomincia</span>
+                </button>
+
+                <button id="check-btn" onclick="checkAnswer()" class="flex-grow md:flex-grow-0 px-8 py-3.5 rounded-2xl text-white font-bold text-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-200 active:scale-95 transition-all flex items-center justify-center gap-2">
+                    <span>Verifica Frase</span>
+                    <i class="fa-solid fa-circle-check"></i>
+                </button>
+            </div>
+
+        </main>
+
+        <footer class="mt-4 text-center text-xs text-slate-500">
+            Creato per la Scuola Primaria • Analisi logica per la 4ª Primaria 🎓
+        </footer>
+    </div>
+
+    <!-- RULE HELP MODAL -->
+    <div id="rule-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl border-4 border-indigo-200 pop-in max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-2xl font-bold text-indigo-900 flex items-center gap-2">
+                    <i class="fa-solid fa-book-open text-indigo-600"></i>
+                    Regole dell'Analisi Logica
+                </h2>
+                <button onclick="closeRuleModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+            </div>
+
+            <div class="space-y-3.5 text-sm text-slate-700">
+                <div class="p-3 bg-blue-50 border-l-4 border-blue-500 rounded-r-xl">
+                    <h4 class="font-bold text-blue-900">🟦 SOGGETTO</h4>
+                    <p>Chi compie l'azione o di chi si parla.<br><em class="text-blue-700">Es: <strong>Maria</strong> sente un profumo di torta.</em></p>
+                </div>
+
+                <div class="p-3 bg-rose-50 border-l-4 border-rose-500 rounded-r-xl">
+                    <h4 class="font-bold text-rose-900">🟥 PREDICATO VERBALE</h4>
+                    <p>L'azione compiuta dal soggetto (il verbo).<br><em class="text-rose-700">Es: Maria <strong>sente</strong> un profumo di torta.</em></p>
+                </div>
+
+                <div class="p-3 bg-emerald-50 border-l-4 border-emerald-500 rounded-r-xl">
+                    <h4 class="font-bold text-emerald-900">🟩 COMPLEMENTO OGGETTO</h4>
+                    <p>Risponde alla domanda: <strong>Chi? / Che cosa?</strong><br><em class="text-emerald-700">Es: Maria sente <strong>un profumo</strong> (Che cosa?).</em></p>
+                </div>
+
+                <div class="p-3 bg-amber-50 border-l-4 border-amber-500 rounded-r-xl">
+                    <h4 class="font-bold text-amber-900">🟨 COMPLEMENTO DI SPECIFICAZIONE</h4>
+                    <p>Precisano o specificano meglio il nome a cui si collegano. Risponde a: <strong>Di chi? / Di che cosa?</strong> (introdotto da <em>di, del, della, degli...</em>).<br><em class="text-amber-800">Es: Maria sente un profumo <strong>di torta</strong> (Di che cosa?).</em></p>
+                </div>
+            </div>
+
+            <button onclick="closeRuleModal()" class="mt-5 w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-md transition">
+                Ho capito, giochiamo! 🚀
+            </button>
+        </div>
+    </div>
+
+    <!-- FEEDBACK TOAST / POPUP -->
+    <div id="feedback-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+        <div id="feedback-content" class="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl text-center border-4 pop-in">
+            <div id="feedback-icon" class="text-5xl mb-2">🌟</div>
+            <h2 id="feedback-title" class="text-2xl font-bold mb-1">Bravissimo!</h2>
+            <p id="feedback-message" class="text-slate-600 mb-4 font-medium text-sm">Hai analizzato la frase in modo perfetto!</p>
+            
+            <div id="feedback-breakdown" class="bg-slate-50 rounded-2xl p-3.5 mb-5 text-left text-xs md:text-sm space-y-1.5 border border-slate-200">
+                <!-- Detailed breakdown injected here -->
+            </div>
+
+            <button id="next-btn" onclick="nextLevel()" class="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl shadow-lg transition text-base flex items-center justify-center gap-2">
+                <span>Prossima Frase</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- FINAL VICTORY MODAL -->
+    <div id="victory-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl text-center border-4 border-amber-300 pop-in relative overflow-hidden">
+            <div class="text-6xl mb-2 animate-bounce">🏆</div>
+            <h2 class="text-3xl font-extrabold text-indigo-900 mb-1">Super Detective!</h2>
+            <p class="text-amber-600 font-bold text-lg mb-4">Hai completato tutte le 10 frasi!</p>
+
+            <div class="bg-amber-50 rounded-2xl p-5 border-2 border-amber-200 mb-6 flex flex-col items-center justify-center">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Punteggio Finale</span>
+                <span id="final-score" class="text-5xl font-black text-amber-500 my-1">100</span>
+                <div class="flex gap-2 text-xl text-amber-400">
+                    <i class="fa-solid fa-star"></i>
+                    <i class="fa-solid fa-star"></i>
+                    <i class="fa-solid fa-star"></i>
+                </div>
+            </div>
+
+            <p class="text-slate-600 text-sm mb-6">
+                Ora sei un vero esperto di <strong>Soggetto</strong>, <strong>Predicato Verbale</strong>, <strong>Complemento Oggetto</strong> e <strong>Complemento di Specificazione</strong>!
+            </p>
+
+            <button onclick="restartGame()" class="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-2xl shadow-lg transition text-lg flex items-center justify-center gap-2">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span>Gioca di Nuovo</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let soundEnabled = true;
+        let audioCtx = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) {
+                    audioCtx = new AudioContext();
+                }
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('sound-icon');
+            if (soundEnabled) {
+                icon.className = 'fa-solid fa-volume-high';
+                playSound('select');
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-slate-400';
+            }
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                if (!ctx) return;
+
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                const now = ctx.currentTime;
+
+                if (type === 'select') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.1);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'drop') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(600, now + 0.12);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                } else if (type === 'success') {
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, idx) => {
+                        const noteOsc = ctx.createOscillator();
+                        const noteGain = ctx.createGain();
+                        noteOsc.connect(noteGain);
+                        noteGain.connect(ctx.destination);
+                        
+                        noteOsc.type = 'sine';
+                        noteOsc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                        noteGain.gain.setValueAtTime(0.2, now + idx * 0.08);
+                        noteGain.gain.linearRampToValueAtTime(0.01, now + idx * 0.08 + 0.25);
+                        
+                        noteOsc.start(now + idx * 0.08);
+                        noteOsc.stop(now + idx * 0.08 + 0.25);
+                    });
+                } else if (type === 'error') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.setValueAtTime(180, now + 0.1);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                }
+            } catch (e) {
+                console.log('Audio error:', e);
+            }
+        }
+
+        const sentencesData = [
+            {
+                id: 1,
+                soggetto: "Maria",
+                predicato: "sente",
+                oggetto: "un profumo",
+                specificazione: "di torta",
+                emoji: "🍰",
+                hint: "Maria (soggetto) sente (verbo) un profumo (che cosa?). Di torta risponde a 'di che cosa?'."
+            },
+            {
+                id: 2,
+                soggetto: "Il cane",
+                predicato: "insegue",
+                oggetto: "il gatto",
+                specificazione: "della vicina",
+                emoji: "🐈",
+                hint: "Chi inseigue? Il cane. Che cosa insegue? Il gatto. Di chi è il gatto? Della vicina!"
+            },
+            {
+                id: 3,
+                soggetto: "Luca",
+                predicato: "legge",
+                oggetto: "il libro",
+                specificazione: "di storia",
+                emoji: "📚",
+                hint: "Luca è il soggetto, legge è il predicato, il libro è l'oggetto, di storia specifica il libro!"
+            },
+            {
+                id: 4,
+                soggetto: "Marco",
+                predicato: "trova",
+                oggetto: "le chiavi",
+                specificazione: "della macchina",
+                emoji: "🔑",
+                hint: "Di che cosa sono le chiavi? Della macchina! Questo è il complemento di specificazione."
+            },
+            {
+                id: 5,
+                soggetto: "La mamma",
+                predicato: "ascolta",
+                oggetto: "la musica",
+                specificazione: "di Mozart",
+                emoji: "🎵",
+                hint: "Di chi è la musica? Di Mozart (Specificazione)."
+            },
+            {
+                id: 6,
+                soggetto: "Il pittore",
+                predicato: "dipinge",
+                oggetto: "il ritratto",
+                specificazione: "del re",
+                emoji: "🎨",
+                hint: "Il pittore (chi?), dipinge (azione), il ritratto (che cosa?), del re (di chi?)."
+            },
+            {
+                id: 7,
+                soggetto: "Gli studenti",
+                predicato: "osservano",
+                oggetto: "le stelle",
+                specificazione: "della notte",
+                emoji: "🌌",
+                hint: "Osservano è il verbo. Le stelle risponde a 'che cosa?'. Della notte specifica quali stelle!"
+            },
+            {
+                id: 8,
+                soggetto: "Il pirata",
+                predicato: "cerca",
+                oggetto: "il tesoro",
+                specificazione: "dell'isola",
+                emoji: "🏴‍☠️",
+                hint: "Di che cosa è il tesoro? Dell'isola (Complemento di specificazione)."
+            },
+            {
+                id: 9,
+                soggetto: "L'esploratore",
+                predicato: "segue",
+                oggetto: "le impronte",
+                specificazione: "dell'orso",
+                emoji: "🐻",
+                hint: "Chi segue? L'esploratore. Che cosa? Le impronte. Di chi? Dell'orso!"
+            },
+            {
+                id: 10,
+                soggetto: "Sofia",
+                predicato: "beve",
+                oggetto: "una tazza",
+                specificazione: "di cioccolata",
+                emoji: "☕",
+                hint: "Sofia beve una tazza (oggetto) di cioccolata (specificazione, di che cosa?)."
+            }
+        ];
+
+        let currentLevelIndex = 0;
+        let score = 0;
+        let selectedChipId = null;
+        let userAssignments = {
+            soggetto: null,
+            predicato: null,
+            oggetto: null,
+            specificazione: null
+        };
+
+        window.onload = function() {
+            document.getElementById('total-levels-text').textContent = sentencesData.length;
+            loadLevel(currentLevelIndex);
+        };
+
+        function loadLevel(index) {
+            const data = sentencesData[index];
+            selectedChipId = null;
+            userAssignments = { soggetto: null, predicato: null, oggetto: null, specificazione: null };
+
+            document.getElementById('current-level-text').textContent = index + 1;
+            document.getElementById('score-display').textContent = score;
+            
+            const progressPct = ((index + 1) / sentencesData.length) * 100;
+            document.getElementById('progress-bar').style.width = `${progressPct}%`;
+
+            const chips = [
+                { id: 'chip-soggetto', text: data.soggetto, category: 'soggetto' },
+                { id: 'chip-predicato', text: data.predicato, category: 'predicato' },
+                { id: 'chip-oggetto', text: data.oggetto, category: 'oggetto' },
+                { id: 'chip-specificazione', text: data.specificazione, category: 'specificazione' }
+            ];
+
+            // Randomize chip placement in word bank
+            chips.sort(() => Math.random() - 0.5);
+
+            const wordBank = document.getElementById('word-bank');
+            wordBank.innerHTML = '';
+
+            ['soggetto', 'predicato', 'oggetto', 'specificazione'].forEach(cat => {
+                const slot = document.querySelector(`#zone-${cat} .slot-content`);
+                slot.innerHTML = '<span class="text-xs text-slate-300 font-medium italic pointer-events-none">Vuoto</span>';
+            });
+
+            chips.forEach(chip => {
+                const chipEl = document.createElement('div');
+                chipEl.id = chip.id;
+                chipEl.dataset.text = chip.text;
+                chipEl.dataset.category = chip.category;
+                chipEl.draggable = true;
+                chipEl.className = "bg-white text-slate-800 font-bold px-3.5 py-2 rounded-2xl shadow-md border-2 border-indigo-200 cursor-grab active:cursor-grabbing hover:border-indigo-400 hover:shadow-lg transition-all transform hover:-translate-y-0.5 text-sm md:text-base flex items-center gap-2 select-none";
+                
+                chipEl.innerHTML = `<span>${chip.text}</span>`;
+
+                chipEl.addEventListener('dragstart', (e) => handleDragStart(e, chip.id));
+                chipEl.addEventListener('dragend', handleDragEnd);
+                chipEl.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    handleChipClick(chip.id);
+                });
+
+                wordBank.appendChild(chipEl);
+            });
+        }
+
+        function handleChipClick(chipId) {
+            playSound('select');
+
+            if (selectedChipId === chipId) {
+                deselectAllChips();
+                return;
+            }
+
+            deselectAllChips();
+            selectedChipId = chipId;
+            const chipEl = document.getElementById(chipId);
+            if (chipEl) {
+                chipEl.classList.add('chip-selected', 'bg-amber-50');
+            }
+        }
+
+        function deselectAllChips() {
+            selectedChipId = null;
+            document.querySelectorAll('#word-bank > div, .drop-zone div').forEach(el => {
+                el.classList.remove('chip-selected', 'bg-amber-50');
+            });
+        }
+
+        function handleZoneClick(category) {
+            if (selectedChipId) {
+                assignChipToZone(selectedChipId, category);
+                deselectAllChips();
+            }
+        }
+
+        function handleDragStart(e, chipId) {
+            e.dataTransfer.setData('text/plain', chipId);
+            playSound('select');
+            setTimeout(() => {
+                const el = document.getElementById(chipId);
+                if (el) el.classList.add('opacity-40');
+            }, 0);
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('opacity-40');
+        }
+
+        function allowDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function removeDragOver(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e, category) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            const chipId = e.dataTransfer.getData('text/plain');
+            if (chipId) {
+                assignChipToZone(chipId, category);
+            }
+        }
+
+        function assignChipToZone(chipId, category) {
+            const chipEl = document.getElementById(chipId);
+            if (!chipEl) return;
+
+            playSound('drop');
+
+            // Clear previous assignment
+            Object.keys(userAssignments).forEach(cat => {
+                if (userAssignments[cat] === chipId) {
+                    userAssignments[cat] = null;
+                    const slot = document.querySelector(`#zone-${cat} .slot-content`);
+                    slot.innerHTML = '<span class="text-xs text-slate-300 font-medium italic pointer-events-none">Vuoto</span>';
+                }
+            });
+
+            // If target zone is occupied, return existing item to bank
+            if (userAssignments[category]) {
+                const prevChipId = userAssignments[category];
+                const prevChipEl = document.getElementById(prevChipId);
+                if (prevChipEl) {
+                    document.getElementById('word-bank').appendChild(prevChipEl);
+                }
+            }
+
+            userAssignments[category] = chipId;
+            const targetSlot = document.querySelector(`#zone-${category} .slot-content`);
+            targetSlot.innerHTML = '';
+            targetSlot.appendChild(chipEl);
+
+            chipEl.classList.remove('chip-selected', 'bg-amber-50');
+        }
+
+        function resetCurrentSentence() {
+            loadLevel(currentLevelIndex);
+            playSound('select');
+        }
+
+        function checkAnswer() {
+            if (!userAssignments.soggetto || !userAssignments.predicato || !userAssignments.oggetto || !userAssignments.specificazione) {
+                playSound('error');
+                showToastError("Inserisci tutti e 4 i pezzi nella posizione corretta!");
+                return;
+            }
+
+            const currentData = sentencesData[currentLevelIndex];
+
+            const isSoggettoCorrect = userAssignments.soggetto === 'chip-soggetto';
+            const isPredicatoCorrect = userAssignments.predicato === 'chip-predicato';
+            const isOggettoCorrect = userAssignments.oggetto === 'chip-oggetto';
+            const isSpecificazioneCorrect = userAssignments.specificazione === 'chip-specificazione';
+
+            if (isSoggettoCorrect && isPredicatoCorrect && isOggettoCorrect && isSpecificazioneCorrect) {
+                playSound('success');
+                score += 10;
+                document.getElementById('score-display').textContent = score;
+
+                confetti({
+                    particleCount: 80,
+                    spread: 70,
+                    origin: { y: 0.7 }
+                });
+
+                showFeedbackModal(true, currentData);
+            } else {
+                playSound('error');
+                
+                const mainEl = document.querySelector('main');
+                mainEl.classList.add('shake');
+                setTimeout(() => mainEl.classList.remove('shake'), 500);
+
+                showFeedbackModal(false, currentData);
+            }
+        }
+
+        function showFeedbackModal(isSuccess, data) {
+            const modal = document.getElementById('feedback-modal');
+            const content = document.getElementById('feedback-content');
+            const title = document.getElementById('feedback-title');
+            const icon = document.getElementById('feedback-icon');
+            const message = document.getElementById('feedback-message');
+            const breakdown = document.getElementById('feedback-breakdown');
+            const nextBtn = document.getElementById('next-btn');
+
+            if (isSuccess) {
+                content.className = "bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl text-center border-4 border-emerald-400 pop-in";
+                icon.textContent = data.emoji || "🌟";
+                title.textContent = "Eccezionale! 🎉";
+                title.className = "text-2xl font-bold text-emerald-600 mb-1";
+                message.textContent = "Hai risolto l'analisi logica perfettamente!";
+
+                breakdown.innerHTML = `
+                    <div class="font-bold text-slate-700 mb-2 text-center text-sm">Analisi logica completa:</div>
+                    <div class="p-2 bg-blue-50 text-blue-900 rounded-lg"><strong>Soggetto:</strong> ${data.soggetto}</div>
+                    <div class="p-2 bg-rose-50 text-rose-900 rounded-lg"><strong>Predicato Verbale:</strong> ${data.predicato}</div>
+                    <div class="p-2 bg-emerald-50 text-emerald-900 rounded-lg"><strong>Compl. Oggetto:</strong> ${data.oggetto}</div>
+                    <div class="p-2 bg-amber-50 text-amber-900 rounded-lg"><strong>Compl. Specificazione:</strong> ${data.specificazione}</div>
+                `;
+
+                nextBtn.innerHTML = `<span>Prossima Frase</span> <i class="fa-solid fa-arrow-right"></i>`;
+                nextBtn.className = "w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl shadow-lg transition text-base flex items-center justify-center gap-2";
+                nextBtn.onclick = () => {
+                    closeFeedbackModal();
+                    nextLevel();
+                };
+            } else {
+                content.className = "bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl text-center border-4 border-rose-400 pop-in";
+                icon.textContent = "🔍";
+                title.textContent = "Ci sei quasi!";
+                title.className = "text-2xl font-bold text-rose-600 mb-1";
+                message.textContent = "Controlla bene la domanda di ogni complemento:";
+
+                breakdown.innerHTML = `
+                    <div class="text-slate-600 font-medium">
+                        <p class="mb-1.5 font-bold text-indigo-900">💡 Suggerimento del Detective:</p>
+                        <p class="bg-amber-50 p-3 rounded-xl border border-amber-200 text-amber-900 leading-snug">${data.hint}</p>
+                    </div>
+                `;
+
+                nextBtn.innerHTML = `<span>Riprova Ora</span> <i class="fa-solid fa-rotate-left"></i>`;
+                nextBtn.className = "w-full py-3.5 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-2xl shadow-lg transition text-base flex items-center justify-center gap-2";
+                nextBtn.onclick = closeFeedbackModal;
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeFeedbackModal() {
+            document.getElementById('feedback-modal').classList.add('hidden');
+        }
+
+        function nextLevel() {
+            if (currentLevelIndex < sentencesData.length - 1) {
+                currentLevelIndex++;
+                loadLevel(currentLevelIndex);
+            } else {
+                showVictoryModal();
+            }
+        }
+
+        function showVictoryModal() {
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('victory-modal').classList.remove('hidden');
+            confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 } });
+        }
+
+        function restartGame() {
+            score = 0;
+            currentLevelIndex = 0;
+            document.getElementById('victory-modal').classList.add('hidden');
+            loadLevel(0);
+        }
+
+        function openRuleModal() {
+            playSound('select');
+            const modal = document.getElementById('rule-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
+        }
+
+        function closeRuleModal() {
+            playSound('select');
+            const modal = document.getElementById('rule-modal');
+            modal.classList.add('opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function showToastError(msg) {
+            const toast = document.createElement('div');
+            toast.className = "fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white font-semibold text-xs md:text-sm px-6 py-3 rounded-full shadow-2xl z-50 flex items-center gap-2 border border-slate-700 pop-in";
+            toast.innerHTML = `<i class="fa-solid fa-circle-exclamation text-amber-400"></i> ${msg}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2500);
+        }
+    </script>
+</body>
+</html>
