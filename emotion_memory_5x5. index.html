@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotion Memory 5x5 - English Learning Game</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Canvas Confetti for Victory Effect -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        fredoka: ['Fredoka', 'sans-serif'],
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        
+        .transform-style-3d {
+            transform-style: preserve-3d;
+            transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1);
+        }
+        
+        .backface-hidden {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        
+        .rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+        
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+        
+        .card.matched .card-front {
+            border-color: #22c55e;
+            background-color: #f0fdf4;
+            animation: pulse-matched 0.6s ease-in-out;
+        }
+
+        .card.jolly-active .card-front {
+            border-color: #eab308;
+            background-color: #fefce8;
+            animation: bounce-jolly 0.8s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse-matched {
+            0% { transform: rotateY(180deg) scale(1); }
+            50% { transform: rotateY(180deg) scale(1.08); }
+            100% { transform: rotateY(180deg) scale(1); }
+        }
+
+        @keyframes bounce-jolly {
+            0% { transform: rotateY(180deg) translateY(0); }
+            100% { transform: rotateY(180deg) translateY(-4px); }
+        }
+
+        /* Glassmorphism panel styling */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-100 via-sky-50 to-pink-100 min-h-screen text-slate-800 flex flex-col justify-between p-2 sm:p-4">
+
+    <!-- Top Header & Controls -->
+    <header class="max-w-4xl mx-auto w-full mb-3">
+        <div class="glass-panel rounded-2xl p-3 sm:p-4 shadow-lg flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-tr from-amber-400 to-rose-400 rounded-xl flex items-center justify-center text-white text-xl sm:text-2xl shadow-md">
+                    🧠
+                </div>
+                <div>
+                    <h1 class="font-fredoka text-xl sm:text-2xl font-bold bg-gradient-to-r from-indigo-600 to-pink-600 bg-clip-text text-transparent leading-tight">
+                        Emotion Memory 5x5
+                    </h1>
+                    <p class="text-xs text-slate-500 font-medium">Impara le emozioni in inglese e divertiti!</p>
+                </div>
+            </div>
+
+            <!-- Quick Action Buttons -->
+            <div class="flex items-center gap-2">
+                <button id="audio-toggle" onclick="toggleAudio()" class="p-2 sm:px-3 sm:py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition flex items-center gap-1.5" title="Attiva/Disattiva Audio">
+                    <i id="audio-icon" class="fas fa-volume-up text-indigo-600"></i>
+                    <span class="hidden sm:inline">Audio</span>
+                </button>
+                <button onclick="openGuideModal()" class="p-2 sm:px-3 sm:py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-sm font-semibold transition flex items-center gap-1.5">
+                    <i class="fas fa-book-open"></i>
+                    <span class="hidden sm:inline">Dizionario</span>
+                </button>
+                <button onclick="resetGame()" class="p-2 sm:px-3 sm:py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition shadow-sm flex items-center gap-1.5">
+                    <i class="fas fa-rotate-right"></i>
+                    <span>Nuova Partita</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Stats Bar -->
+    <div class="max-w-4xl mx-auto w-full mb-3 grid grid-cols-4 gap-2 sm:gap-4">
+        <div class="glass-panel rounded-xl p-2 sm:p-3 text-center shadow-sm">
+            <span class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-bold block">Tempo</span>
+            <span id="timer-display" class="font-fredoka text-base sm:text-2xl font-bold text-indigo-600">00:00</span>
+        </div>
+        <div class="glass-panel rounded-xl p-2 sm:p-3 text-center shadow-sm">
+            <span class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-bold block">Mosse</span>
+            <span id="moves-display" class="font-fredoka text-base sm:text-2xl font-bold text-slate-700">0</span>
+        </div>
+        <div class="glass-panel rounded-xl p-2 sm:p-3 text-center shadow-sm">
+            <span class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-bold block">Coppie</span>
+            <span id="pairs-display" class="font-fredoka text-base sm:text-2xl font-bold text-emerald-600">0/12</span>
+        </div>
+        <div class="glass-panel rounded-xl p-2 sm:p-3 text-center shadow-sm">
+            <span class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-bold block">Punti</span>
+            <span id="score-display" class="font-fredoka text-base sm:text-2xl font-bold text-amber-500">0</span>
+        </div>
+    </div>
+
+    <!-- Main Game Board Container -->
+    <main class="max-w-4xl mx-auto w-full flex-1 flex flex-col items-center justify-center">
+        <div id="game-grid" class="grid grid-cols-5 gap-2 sm:gap-3.5 w-full max-w-[620px] aspect-square p-2 sm:p-3 glass-panel rounded-2xl shadow-xl">
+            <!-- 25 Cards dynamically inserted by JavaScript -->
+        </div>
+    </main>
+
+    <!-- Bottom Footer Status & Hints -->
+    <footer class="max-w-4xl mx-auto w-full mt-3 text-center">
+        <div class="glass-panel rounded-xl p-2.5 text-xs text-slate-600 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+                <span>Trova la carta <strong>🌟 JOLLY</strong> per svelare temporaneamente 3 carte extra!</span>
+            </div>
+            <div id="pronounce-hint" class="text-indigo-600 font-semibold cursor-pointer hover:underline flex items-center gap-1" onclick="speakCurrentHint()">
+                <i class="fas fa-volume-high"></i>
+                <span>Clicca una carta per ascoltare la pronuncia</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Victory Modal -->
+    <div id="victory-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 text-center shadow-2xl border border-slate-100 transform transition-all scale-95 opacity-0" id="victory-modal-card">
+            <div class="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl shadow-inner">
+                🏆
+            </div>
+            <h2 class="font-fredoka text-3xl font-bold text-slate-800 mb-1">Fantastico!</h2>
+            <p class="text-slate-500 text-sm mb-6">Hai abbinato tutte le emozioni correttamente!</p>
+
+            <div class="bg-slate-50 rounded-2xl p-4 mb-6 grid grid-cols-2 gap-3 text-left">
+                <div>
+                    <span class="text-xs text-slate-400 block font-semibold uppercase">Tempo Impiegato</span>
+                    <span id="final-time" class="font-fredoka text-xl text-slate-700 font-bold">00:00</span>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 block font-semibold uppercase">Mosse Totali</span>
+                    <span id="final-moves" class="font-fredoka text-xl text-slate-700 font-bold">0</span>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 block font-semibold uppercase">Punteggio Finale</span>
+                    <span id="final-score" class="font-fredoka text-xl text-amber-500 font-bold">0</span>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 block font-semibold uppercase">Valutazione</span>
+                    <span id="final-stars" class="text-lg text-amber-400">⭐⭐⭐</span>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="closeVictoryModal(); openGuideModal();" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">
+                    Ripassa Emozioni
+                </button>
+                <button onclick="closeVictoryModal(); resetGame();" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-md">
+                    Gioca Ancora
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Emotion Dictionary Modal -->
+    <div id="guide-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-lg w-full max-h-[85vh] flex flex-col shadow-2xl border border-slate-100">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">📚</span>
+                    <h3 class="font-fredoka text-xl font-bold text-slate-800">Dizionario delle Emozioni</h3>
+                </div>
+                <button onclick="closeGuideModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="p-4 overflow-y-auto flex-1 space-y-2" id="dictionary-list">
+                <!-- Dynamically populated -->
+            </div>
+
+            <div class="p-4 border-t border-slate-100 text-center bg-slate-50 rounded-b-3xl">
+                <button onclick="closeGuideModal()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition">
+                    Torna al Gioco
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data Set of 12 Emotion Pairs (Word + Emoji) + 1 Jolly Wildcard = 25 total cards
+        const EMOTIONS_DATA = [
+            { id: 'happy', english: 'Happy', emoji: '😊', italian: 'Felice' },
+            { id: 'sad', english: 'Sad', emoji: '😢', italian: 'Triste' },
+            { id: 'angry', english: 'Angry', emoji: '😡', italian: 'Arrabbiato/a' },
+            { id: 'scared', english: 'Scared', emoji: '😱', italian: 'Spaventato/a' },
+            { id: 'surprised', english: 'Surprised', emoji: '😲', italian: 'Sorpreso/a' },
+            { id: 'disgusted', english: 'Disgusted', emoji: '🤢', italian: 'Disgustato/a' },
+            { id: 'excited', english: 'Excited', emoji: '🤩', italian: 'Emozionato/a' },
+            { id: 'tired', english: 'Tired', emoji: '😴', italian: 'Stanco/a' },
+            { id: 'confused', english: 'Confused', emoji: '😕', italian: 'Confuso/a' },
+            { id: 'proud', english: 'Proud', emoji: '😎', italian: 'Orgoglioso/a' },
+            { id: 'nervous', english: 'Nervous', emoji: '😬', italian: 'Nervoso/a' },
+            { id: 'calm', english: 'Calm', emoji: '😌', italian: 'Calmo/a' }
+        ];
+
+        // Game State Variables
+        let cards = [];
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let moves = 0;
+        let score = 0;
+        let gameTimer = null;
+        let secondsElapsed = 0;
+        let isBoardLocked = false;
+        let isAudioMuted = false;
+        let lastPronouncedWord = 'Emotion Memory';
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (isAudioMuted) return;
+            try {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'flip') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(500, now + 0.08);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'match') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
+                    osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'mismatch') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.linearRampToValueAtTime(160, now + 0.15);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'jolly') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.2);
+                    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.4);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+                    osc.start(now);
+                    osc.stop(now + 0.45);
+                } else if (type === 'win') {
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, idx) => {
+                        const noteOsc = audioCtx.createOscillator();
+                        const noteGain = audioCtx.createGain();
+                        noteOsc.type = 'triangle';
+                        noteOsc.frequency.setValueAtTime(freq, now + idx * 0.1);
+                        noteGain.gain.setValueAtTime(0.2, now + idx * 0.1);
+                        noteGain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.1 + 0.3);
+                        noteOsc.connect(noteGain);
+                        noteGain.connect(audioCtx.destination);
+                        noteOsc.start(now + idx * 0.1);
+                        noteOsc.stop(now + idx * 0.1 + 0.3);
+                    });
+                }
+            } catch (e) {
+                console.log('Audio Context Error:', e);
+            }
+        }
+
+        function speakWord(word) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(word);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.9;
+                utterance.pitch = 1.0;
+                window.speechSynthesis.speak(utterance);
+                lastPronouncedWord = word;
+            }
+        }
+
+        function speakCurrentHint() {
+            if (lastPronouncedWord) {
+                speakWord(lastPronouncedWord);
+            }
+        }
+
+        function toggleAudio() {
+            isAudioMuted = !isAudioMuted;
+            const icon = document.getElementById('audio-icon');
+            if (isAudioMuted) {
+                icon.className = 'fas fa-volume-xmark text-rose-500';
+            } else {
+                icon.className = 'fas fa-volume-up text-indigo-600';
+                playSound('flip');
+            }
+        }
+
+        function initGame() {
+            clearInterval(gameTimer);
+            gameTimer = null;
+            secondsElapsed = 0;
+            moves = 0;
+            matchedPairs = 0;
+            score = 0;
+            isBoardLocked = false;
+            flippedCards = [];
+
+            updateStatsDisplay();
+
+            let deck = [];
+
+            EMOTIONS_DATA.forEach(item => {
+                // Word Card
+                deck.push({
+                    id: item.id,
+                    type: 'word',
+                    content: item.english,
+                    subtext: 'English',
+                    itemData: item
+                });
+                // Emoji Card
+                deck.push({
+                    id: item.id,
+                    type: 'emoji',
+                    content: item.emoji,
+                    subtext: item.italian,
+                    itemData: item
+                });
+            });
+
+            // 25th Card: Jolly Wildcard
+            deck.push({
+                id: 'jolly',
+                type: 'jolly',
+                content: '🌟',
+                subtext: 'JOLLY',
+                itemData: { english: 'Jolly Wildcard', italian: 'Carta Speciale' }
+            });
+
+            cards = shuffle(deck);
+            renderBoard();
+
+            document.getElementById('timer-display').textContent = '00:00';
+        }
+
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex !== 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        function renderBoard() {
+            const gridContainer = document.getElementById('game-grid');
+            gridContainer.innerHTML = '';
+
+            cards.forEach((card, index) => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card perspective-1000 w-full h-full cursor-pointer';
+                cardEl.dataset.index = index;
+
+                const isEmoji = card.type === 'emoji';
+                const isJolly = card.type === 'jolly';
+
+                cardEl.innerHTML = `
+                    <div class="card-inner relative w-full h-full transform-style-3d shadow-md rounded-xl sm:rounded-2xl">
+                        <!-- Card Back -->
+                        <div class="card-back absolute inset-0 rounded-xl sm:rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col items-center justify-center text-white border-2 border-indigo-300/40 shadow-inner hover:scale-[1.02] transition-transform">
+                            <span class="text-xl sm:text-2xl font-bold opacity-80">❓</span>
+                        </div>
+                        <!-- Card Front -->
+                        <div class="card-front absolute inset-0 backface-hidden rotate-y-180 rounded-xl sm:rounded-2xl bg-white border-2 border-slate-200 flex flex-col items-center justify-center p-1 text-center shadow-sm">
+                            ${isJolly ? `
+                                <span class="text-2xl sm:text-4xl mb-0.5 animate-bounce">🌟</span>
+                                <span class="font-fredoka text-xs sm:text-sm font-bold text-amber-600 uppercase">JOLLY</span>
+                            ` : isEmoji ? `
+                                <span class="text-3xl sm:text-4xl hover:scale-110 transition-transform">${card.content}</span>
+                                <span class="text-[9px] sm:text-[11px] font-semibold text-slate-400 mt-0.5">${card.subtext}</span>
+                            ` : `
+                                <span class="font-fredoka text-xs sm:text-base font-bold text-indigo-700 leading-tight">${card.content}</span>
+                                <span class="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Word</span>
+                            `}
+                        </div>
+                    </div>
+                `;
+
+                cardEl.addEventListener('click', () => handleCardClick(index, cardEl));
+                gridContainer.appendChild(cardEl);
+            });
+        }
+
+        function startTimer() {
+            if (!gameTimer) {
+                gameTimer = setInterval(() => {
+                    secondsElapsed++;
+                    const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+                    const secs = String(secondsElapsed % 60).padStart(2, '0');
+                    document.getElementById('timer-display').textContent = `${mins}:${secs}`;
+                }, 1000);
+            }
+        }
+
+        function handleCardClick(index, cardEl) {
+            if (isBoardLocked) return;
+
+            const card = cards[index];
+
+            if (cardEl.classList.contains('flipped') || cardEl.classList.contains('matched')) {
+                return;
+            }
+
+            startTimer();
+
+            // Handle Jolly Card Special Interaction
+            if (card.type === 'jolly') {
+                flipCard(cardEl);
+                playSound('jolly');
+                cardEl.classList.add('matched', 'jolly-active');
+                speakWord('Jolly Wildcard!');
+                triggerJollyBonus(index);
+                return;
+            }
+
+            flipCard(cardEl);
+            playSound('flip');
+            speakWord(card.itemData.english);
+
+            flippedCards.push({ index, card, el: cardEl });
+
+            if (flippedCards.length === 2) {
+                moves++;
+                updateStatsDisplay();
+                checkMatch();
+            }
+        }
+
+        function flipCard(cardEl) {
+            cardEl.classList.add('flipped');
+        }
+
+        function unflipCard(cardEl) {
+            cardEl.classList.remove('flipped');
+        }
+
+        function checkMatch() {
+            isBoardLocked = true;
+            const [first, second] = flippedCards;
+
+            const isSameEmotion = first.card.id === second.card.id;
+            const isDifferentType = first.card.type !== second.card.type;
+
+            if (isSameEmotion && isDifferentType) {
+                setTimeout(() => {
+                    playSound('match');
+                    first.el.classList.add('matched');
+                    second.el.classList.add('matched');
+
+                    matchedPairs++;
+                    score += Math.max(100 - (moves * 2), 20);
+
+                    updateStatsDisplay();
+                    flippedCards = [];
+                    isBoardLocked = false;
+
+                    if (matchedPairs === 12) {
+                        handleVictory();
+                    }
+                }, 400);
+            } else {
+                setTimeout(() => {
+                    playSound('mismatch');
+                    unflipCard(first.el);
+                    unflipCard(second.el);
+                    flippedCards = [];
+                    isBoardLocked = false;
+                }, 900);
+            }
+        }
+
+        function triggerJollyBonus(jollyIndex) {
+            isBoardLocked = true;
+            score += 150;
+            updateStatsDisplay();
+
+            const allCardEls = Array.from(document.querySelectorAll('.card'));
+            const unrevealedEls = allCardEls.filter((el, idx) => {
+                return idx !== jollyIndex && !el.classList.contains('flipped') && !el.classList.contains('matched');
+            });
+
+            const peekCount = Math.min(3, unrevealedEls.length);
+            const peekingEls = shuffle(unrevealedEls).slice(0, peekCount);
+
+            peekingEls.forEach(el => el.classList.add('flipped'));
+
+            setTimeout(() => {
+                peekingEls.forEach(el => {
+                    if (!el.classList.contains('matched')) {
+                        el.classList.remove('flipped');
+                    }
+                });
+                isBoardLocked = false;
+            }, 1600);
+        }
+
+        function updateStatsDisplay() {
+            document.getElementById('moves-display').textContent = moves;
+            document.getElementById('pairs-display').textContent = `${matchedPairs}/12`;
+            document.getElementById('score-display').textContent = score;
+        }
+
+        function handleVictory() {
+            clearInterval(gameTimer);
+            playSound('win');
+
+            try {
+                confetti({
+                    particleCount: 120,
+                    spread: 80,
+                    origin: { y: 0.6 }
+                });
+            } catch (e) {}
+
+            const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+            const secs = String(secondsElapsed % 60).padStart(2, '0');
+
+            document.getElementById('final-time').textContent = `${mins}:${secs}`;
+            document.getElementById('final-moves').textContent = moves;
+            document.getElementById('final-score').textContent = score;
+
+            let stars = '⭐⭐⭐';
+            if (moves > 22) stars = '⭐';
+            else if (moves > 16) stars = '⭐⭐';
+            document.getElementById('final-stars').textContent = stars;
+
+            setTimeout(() => {
+                openVictoryModal();
+            }, 600);
+        }
+
+        function openVictoryModal() {
+            const modal = document.getElementById('victory-modal');
+            const card = document.getElementById('victory-modal-card');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                card.classList.remove('scale-95', 'opacity-0');
+                card.classList.add('scale-100', 'opacity-100');
+            }, 50);
+        }
+
+        function closeVictoryModal() {
+            const modal = document.getElementById('victory-modal');
+            const card = document.getElementById('victory-modal-card');
+            card.classList.remove('scale-100', 'opacity-100');
+            card.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+
+        function openGuideModal() {
+            renderGuideModal();
+            document.getElementById('guide-modal').classList.remove('hidden');
+        }
+
+        function closeGuideModal() {
+            document.getElementById('guide-modal').classList.add('hidden');
+        }
+
+        function renderGuideModal() {
+            const listContainer = document.getElementById('dictionary-list');
+            listContainer.innerHTML = '';
+
+            EMOTIONS_DATA.forEach(item => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'flex items-center justify-between p-3 bg-slate-50 hover:bg-indigo-50/50 rounded-2xl border border-slate-100 transition';
+                itemEl.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl p-1 bg-white rounded-xl shadow-sm border border-slate-100">${item.emoji}</span>
+                        <div>
+                            <span class="font-fredoka text-lg font-bold text-indigo-700 block">${item.english}</span>
+                            <span class="text-xs text-slate-500">${item.italian}</span>
+                        </div>
+                    </div>
+                    <button onclick="speakWord('${item.english}')" class="w-10 h-10 rounded-xl bg-white hover:bg-indigo-600 hover:text-white text-indigo-600 shadow-sm border border-slate-200 flex items-center justify-center transition">
+                        <i class="fas fa-volume-high text-sm"></i>
+                    </button>
+                `;
+                listContainer.appendChild(itemEl);
+            });
+        }
+
+        function resetGame() {
+            initGame();
+        }
+
+        window.onload = function() {
+            initGame();
+        };
+    </script>
+</body>
+</html>
